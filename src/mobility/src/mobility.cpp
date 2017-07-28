@@ -6,6 +6,15 @@
 #include <tf/transform_datatypes.h>
 #include <tf/transform_listener.h>
 
+//OpenCV libraries David
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <image_transport/image_transport.h>
+#include <cv_bridge/cv_bridge.h>
+#include <sstream>
+#define SSTR( x ) static_cast< std::ostringstream & >( \
+        ( std::ostringstream() << std::dec << x ) ).str()
+
 // ROS messages
 #include <std_msgs/Float32.h>
 #include <std_msgs/Int16.h>
@@ -133,7 +142,6 @@ ros::Subscriber obstacleSubscriber;
 ros::Subscriber odometrySubscriber;
 ros::Subscriber mapSubscriber;
 
-
 // Timers
 ros::Timer stateMachineTimer;
 ros::Timer publish_status_timer;
@@ -165,6 +173,7 @@ void mobilityStateMachine(const ros::TimerEvent&);
 void publishStatusTimerEventHandler(const ros::TimerEvent& event);
 void targetDetectedReset(const ros::TimerEvent& event);
 void publishHeartBeatTimerEventHandler(const ros::TimerEvent& event);
+void imageCallback(const sensor_msgs::ImageConstPtr& msg); //David
 
 int main(int argc, char **argv) {
 
@@ -205,6 +214,10 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, (publishedName + "_MOBILITY"), ros::init_options::NoSigintHandler);
     ros::NodeHandle mNH;
 
+    //David variables
+    image_transport::ImageTransport it(mNH);
+    image_transport::Subscriber imgSub = it.subscribe(publishedName + "/camera/image", 1, imageCallback);
+
     // Register the SIGINT event handler so the node can shutdown properly
     signal(SIGINT, sigintEventHandler);
 
@@ -214,6 +227,7 @@ int main(int argc, char **argv) {
     obstacleSubscriber = mNH.subscribe((publishedName + "/obstacle"), 10, obstacleHandler);
     odometrySubscriber = mNH.subscribe((publishedName + "/odom/filtered"), 10, odometryHandler);
     mapSubscriber = mNH.subscribe((publishedName + "/odom/ekf"), 10, mapHandler);
+    
 
     status_publisher = mNH.advertise<std_msgs::String>((publishedName + "/status"), 1, true);
     stateMachinePublish = mNH.advertise<std_msgs::String>((publishedName + "/state_machine"), 1, true);
@@ -789,3 +803,41 @@ void publishHeartBeatTimerEventHandler(const ros::TimerEvent&) {
     msg.data = "";
     heartbeatPublisher.publish(msg);
 }
+
+//David
+void imageCallback(const sensor_msgs::ImageConstPtr& msg)
+{
+    static cv_bridge::CvImagePtr imgPtr;
+    static cv::Mat matImg;
+    static unsigned int count = 0;
+
+    try {
+        imgPtr = cv_bridge::toCvCopy(msg); //, sensor_msgs::image_encodings::MONO8);
+    } catch (cv_bridge::Exception& e) {
+        ROS_ERROR("Could not convert from '%s' to 'bgr8'.", msg->encoding.c_str());
+        return;
+    }
+
+    matImg = imgPtr->image;    
+    
+    cv::imwrite("/home/david/rover_workspace/dataMinedImages/" + SSTR(count) +".jpeg", matImg);
+
+    ++count;
+
+    return;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

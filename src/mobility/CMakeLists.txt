@@ -8,10 +8,12 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   random_numbers
   tf
+  cv_bridge
+  image_transport
 )
 
 catkin_package(
-  CATKIN_DEPENDS geometry_msgs roscpp sensor_msgs std_msgs random_numbers tf
+  CATKIN_DEPENDS cv_bridge image_transport geometry_msgs roscpp sensor_msgs std_msgs random_numbers tf
 )
 
 include_directories(
@@ -31,5 +33,6 @@ add_dependencies(mobility ${catkin_EXPORTED_TARGETS})
 target_link_libraries(
   mobility
   ${catkin_LIBRARIES}
+  ${OpenCV_LIBS}
 )
 
