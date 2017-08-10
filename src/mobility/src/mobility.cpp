@@ -9,6 +9,7 @@
 //OpenCV libraries David
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/opencv.hpp>
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sstream>
@@ -147,6 +148,38 @@ ros::Timer stateMachineTimer;
 ros::Timer publish_status_timer;
 ros::Timer targetDetectedTimer;
 ros::Timer publish_heartbeat_timer;
+
+//Blob Detection
+struct blobParams
+{
+    blobParams()
+    {  
+        params.minThreshold = 10;
+	params.maxThreshold = 200;
+
+	// Filter by Area.
+	params.filterByArea = true;
+	params.minArea = 1500;
+
+	// Filter by Circularity
+	params.filterByCircularity = true;
+	params.minCircularity = 0.1;
+
+	// Filter by Convexity
+	params.filterByConvexity = true;
+	params.minConvexity = 0.87;
+
+	// Filter by Inertia
+	params.filterByInertia = true;
+	params.minInertiaRatio = 0.01;    
+    }    
+
+    cv::SimpleBlobDetector::Params params;     
+};
+
+blobParams blurryCubeBlobParameters;
+cv::SimpleBlobDetector detector(blurryCubeBlobParameters.params);
+vector<cv::KeyPoint> keypoints;
 
 // records time for delays in sequanced actions, 1 second resolution.
 time_t timerStartTime;
@@ -819,8 +852,12 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
     }
 
     matImg = imgPtr->image;    
+    cv::cvtColor(matImg, matImg, cv::COLOR_RGB2BGR); 
+
+    detector.detect(matImg, keypoints);
     
-    cv::imwrite("/home/david/rover_workspace/dataMinedImages/" + SSTR(count) +".jpeg", matImg);
+    if(keypoints.size())
+        sendDriveCommand(0,0);  
 
     ++count;
 
