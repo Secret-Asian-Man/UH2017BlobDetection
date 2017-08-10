@@ -154,24 +154,22 @@ struct blobParams
 {
     blobParams()
     {  
-        params.minThreshold = 10;
-	params.maxThreshold = 200;
+   	params.minThreshold = 10;
+    	params.maxThreshold = 800;
 
-	// Filter by Area.
-	params.filterByArea = true;
-	params.minArea = 1500;
+    	// Filter by Area.
+    	params.filterByArea = true;
+    	params.minArea = 800;
+    	params.maxArea = 8000;
 
-	// Filter by Circularity
-	params.filterByCircularity = true;
-	params.minCircularity = 0.1;
+    	// Filter by Circularity
+    	params.filterByCircularity = false;
 
-	// Filter by Convexity
-	params.filterByConvexity = true;
-	params.minConvexity = 0.87;
+    	// Filter by Convexity
+    	params.filterByConvexity = false;
 
-	// Filter by Inertia
-	params.filterByInertia = true;
-	params.minInertiaRatio = 0.01;    
+    	// Filter by Inertia
+    	params.filterByInertia = false;
     }    
 
     cv::SimpleBlobDetector::Params params;     
@@ -854,11 +852,16 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
     matImg = imgPtr->image;    
     cv::cvtColor(matImg, matImg, cv::COLOR_RGB2BGR); 
 
-    detector.detect(matImg, keypoints);
+    //detector.detect(matImg, keypoints);
     
-    if(keypoints.size())
-        sendDriveCommand(0,0);  
+    //if(keypoints.size())
+    //    sendDriveCommand(0,0);  
 
+    //cv::drawKeypoints( matImg, keypoints, matImg, cv::Scalar(0,0,255), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+
+    //cv::imwrite(("/home/swarmie/rover_workspace/dataMinedImages/" + SSTR(count) + ".jpeg"), matImg);
+
+    cv::imwrite(("/home/swarmie/rover_workspace/dataMinedImages/" + SSTR(count) + ".jpeg"), matImg);
     ++count;
 
     return;
