@@ -15,6 +15,9 @@
 #include <sstream>
 #define SSTR( x ) static_cast< std::ostringstream & >( \
         ( std::ostringstream() << std::dec << x ) ).str()
+#include <time.h>
+#define BLOB_DETECTION_COOL_DOWN_TIME 7.0
+#define BLOB_DETECTION_SLEEP_TIMER 1.0
 
 // ROS messages
 #include <std_msgs/Float32.h>
@@ -178,6 +181,8 @@ struct blobParams
 blobParams blurryCubeBlobParameters;
 cv::SimpleBlobDetector detector(blurryCubeBlobParameters.params);
 vector<cv::KeyPoint> keypoints;
+time_t blobDetectionCoolDownTimer;
+void detectBlurryCubes(cv::Mat &img);
 
 // records time for delays in sequanced actions, 1 second resolution.
 time_t timerStartTime;
@@ -285,7 +290,9 @@ int main(int argc, char **argv) {
     infoLogPublisher.publish(msg);
 
     timerStartTime = time(0);
-
+    
+    blobDetectionCoolDownTimer = time(0);
+    
     ros::spin();
 
     return EXIT_SUCCESS;
@@ -840,7 +847,6 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
 {
     static cv_bridge::CvImagePtr imgPtr;
     static cv::Mat matImg;
-    static unsigned int count = 0;
 
     try {
         imgPtr = cv_bridge::toCvCopy(msg); //, sensor_msgs::image_encodings::MONO8);
@@ -852,22 +858,34 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
     matImg = imgPtr->image;    
     cv::cvtColor(matImg, matImg, cv::COLOR_RGB2BGR); 
 
-    //detector.detect(matImg, keypoints);
-    
-    //if(keypoints.size())
-    //    sendDriveCommand(0,0);  
-
-    //cv::drawKeypoints( matImg, keypoints, matImg, cv::Scalar(0,0,255), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
-
-    //cv::imwrite(("/home/swarmie/rover_workspace/dataMinedImages/" + SSTR(count) + ".jpeg"), matImg);
-
-    cv::imwrite(("/home/swarmie/rover_workspace/dataMinedImages/" + SSTR(count) + ".jpeg"), matImg);
-    ++count;
+    detectBlurryCubes(matImg);
 
     return;
 }
 
+void detectBlurryCubes(cv::Mat &img)
+{
+    static unsigned int count = 0;
 
+    ros::Time savedTime;
+    detector.detect(img, keypoints);
+
+    cv::drawKeypoints(img, keypoints, img, cv::Scalar(0,0,255), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+
+    cv::imwrite(("/home/swarmie/rover_workspace/dataMinedImages/" + SSTR(count) + ".jpeg"), img);
+
+    
+    if(stateMachineState != STATE_MACHINE_PICKUP && keypoints.size() && (time(0) - blobDetectionCoolDownTimer) >= BLOB_DETECTION_COOL_DOWN_TIME)
+    {
+        sendDriveCommand(0,0.0);  
+        ros::Duration(BLOB_DETECTION_SLEEP_TIMER).sleep();
+        blobDetectionCoolDownTimer = time(0);
+    }
+
+    ++count;
+
+    return;
+}
 
 
 
